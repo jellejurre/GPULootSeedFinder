@@ -51,6 +51,7 @@ public class Reverser {
                 lootSeeds.add(lootSeed);
                 bytes = reader.readNBytes(8);
             }
+            reader.close();
         } catch (IOException e) {
             e.printStackTrace();
         }

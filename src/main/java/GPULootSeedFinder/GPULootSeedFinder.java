@@ -25,7 +25,6 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -60,7 +59,7 @@ import kaptainwutax.featureutils.loot.roll.LootRoll;
 import kaptainwutax.featureutils.loot.roll.UniformRoll;
 import kaptainwutax.mcutils.util.data.Pair;
 
-public class GPULootSeedCracker {
+public class GPULootSeedFinder {
     public static String pathToPtx;
     public static long maxMemory;
     public static long cudaCores;
@@ -74,9 +73,13 @@ public class GPULootSeedCracker {
     private static int amountOfBatches;
 
     static {
-        URL ptxURL = GPULootSeedCracker.class.getResource("/cuda/GPULootSeedFinder.ptx");
-        if (ptxURL != null) {
-            pathToPtx = ptxURL.toExternalForm();
+        try {
+            FileOutputStream fos = new FileOutputStream("./GPULootSeedFinder.ptx");
+            fos.write(GPULootSeedFinder.class.getResourceAsStream("/cuda/GPULootSeedFinder.ptx")
+                .readAllBytes());
+            pathToPtx = "./GPULootSeedFinder.ptx";
+        } catch (IOException e){
+            e.printStackTrace();
         }
     }
 
@@ -86,8 +89,8 @@ public class GPULootSeedCracker {
      * @param cudaCores The amount of cuda cores that can be used at most.
      */
     public static void setup(double maxMemoryInMiB, long cudaCores) {
-        GPULootSeedCracker.maxMemory = (long)(maxMemoryInMiB * 1024 * 1024 * 8);
-        GPULootSeedCracker.cudaCores = cudaCores;
+        GPULootSeedFinder.maxMemory = (long)(maxMemoryInMiB * 1024 * 1024 * 8);
+        GPULootSeedFinder.cudaCores = cudaCores;
 
         long effectiveMaxMemory = Math.min(maxMemory, 512*1024*1024);
         seedsPerCudaJob = effectiveMaxMemory / cudaCores - ((effectiveMaxMemory / cudaCores) % 64);
@@ -102,7 +105,7 @@ public class GPULootSeedCracker {
     }
 
     public static void crack(LootTable table, List<ItemStack> requirements, long startingSeed){
-        crack(table, requirements, startingSeed, -1);
+        crack(table, requirements, startingSeed, (long)Math.pow(2, 48));
     }
 
     public static void crack(LootTable table, List<ItemStack> requirements, long startingSeed, long endSeed){

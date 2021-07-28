@@ -1,5 +1,7 @@
 ### GPULootSeedFinder stuff
 *.bin
+GPULootSeedFinder.ptx
+target/
 
 ### Java template
 # Compiled class file
@@ -73,7 +75,6 @@ hs_err_pid*
 
 # Kernel Module Compile Results
 *.mod*
-*.cmd
 .tmp_versions/
 modules.order
 Module.symvers

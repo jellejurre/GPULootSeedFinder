@@ -1,20 +1,20 @@
 package GPULootSeedFinder;
 
-import static jcuda.driver.JCudaDriver.cuDeviceGet;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 
 import GPULootSeedFinder.util.Reverser;
 import GPULootSeedFinder.util.Util;
 import java.io.File;
 import java.lang.reflect.Field;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import jcuda.CudaException;
-import jcuda.driver.CUdevice;
-import jcuda.runtime.JCuda;
 import kaptainwutax.featureutils.loot.LootContext;
 import kaptainwutax.featureutils.loot.LootTable;
 import kaptainwutax.featureutils.loot.MCLootTables;
@@ -48,17 +48,17 @@ public class Example {
 
         //Setup the variables of the cracker. To find what these values should be for your GPU, look up your GPU memory size and your GPU cuda core count.
         //P.S. our code only runs on NVIDIA GPUs
-        GPULootSeedCracker.setup(512, 5500);
+        GPULootSeedFinder.setup(512, 5500);
 
         //Print some stats to know if it's smart to run this program.
-        GPULootSeedCracker.estimateStats(table, requirements);
+        GPULootSeedFinder.estimateStats(table, requirements);
 
         //Call the cracker. This can take up to multiple days if your seed range is large enough, but it will print some stats while running.
         try {
             // This overwrites the path to the PTX file that contains the cuda code. This is not needed unless you are running tests.
-            GPULootSeedCracker.pathToPtx = (Example.class.getResource("/").getPath() + "../classes/cuda/GPULootSeedFinder.ptx").substring(1);
+            GPULootSeedFinder.pathToPtx = (Example.class.getResource("/").getPath() + "../classes/cuda/GPULootSeedFinder.ptx").substring(1);
 
-            GPULootSeedCracker.crack(table, requirements, 0, 4269303063L);
+            GPULootSeedFinder.crack(table, requirements, 0, 4269303063L);
         } catch(CudaException e) {
             System.out.println("Can't run this test because of GPU error. See below.");
             e.printStackTrace();
@@ -66,11 +66,15 @@ public class Example {
         }
 
         //Get the loot seeds from the newly created binary file.
-        List<Long> lootSeeds = Reverser.getSeedsFromBinaryFile(GPULootSeedCracker.getOutputString(requirements));
+        List<Long> lootSeeds = Reverser.getSeedsFromBinaryFile(GPULootSeedFinder.getOutputString(requirements));
 
         //Delete the binary because it's no longer needed. (You don't have to do this. It will see there is a binary file and continue where it left off.)
-        File file = new File(GPULootSeedCracker.getOutputString(requirements));
-        file.delete();
+        Path file = Paths.get(GPULootSeedFinder.getOutputString(requirements));
+        try {
+            Files.delete(file);
+        } catch (Exception e){
+            e.printStackTrace();
+        }
 
         //Create a FeatureUtils ruined portal to get the salt from.
         RuinedPortal portal = new RuinedPortal(Dimension.OVERWORLD, MCVersion.v1_17);
@@ -93,53 +97,36 @@ public class Example {
         assertTrue(Util.checkRequirements(requirements, chestContents));
     }
 
+    //NOTE: THIS MIGHT BE SLOW OR NOT EVER EVEN FINISHED DUE TO SOMETHING WACKY GOING ON WITH BOOKS WITH ENCHANTWITHLEVELSFUNCTIONS ON SOME PCS
     @Test
-    public void correctTest1(){
-        checkTables(0, MCLootTables.class.getDeclaredFields().length/4);
-    }
-
-    @Test
-    public void correctTest2(){
-//        CUdevice device = new CUdevice();
-//        cuDeviceGet(device, 0);
-        JCuda.cudaDeviceReset();
-        checkTables(MCLootTables.class.getDeclaredFields().length/4, MCLootTables.class.getDeclaredFields().length/2);
-    }
-
-    @Test
-    public void correctTest3(){
-        checkTables(MCLootTables.class.getDeclaredFields().length/2, MCLootTables.class.getDeclaredFields().length/4*3);
-    }
-
-    @Test
-    public void correctTest4(){
-        checkTables(MCLootTables.class.getDeclaredFields().length/4*3, MCLootTables.class.getDeclaredFields().length);
-    }
-
-    public void checkTables(int start, int end){
+    public void checkTables(){
         Class lootTables = MCLootTables.class;
         try {
             Field[] fields = lootTables.getDeclaredFields();
-            for (int i = start; i < end; i++) {
+            for (int i = 0; i < fields.length; i++) {
+                //Get a loot table.
                 LootTable table = (LootTable) fields[i].get(null);
                 if (table == MCLootTables.NULL)
                     continue;
 
                 System.out.println("Starting to check table " + fields[i].getName());
 
+                //Set the table to the right version.
                 table.apply(MCVersion.v1_17);
+
+                //Generate a requirement array.
                 List<ItemStack> requirements = table.generate(new LootContext(1));
 
                 //Setup the variables of the cracker. To find what these values should be for your GPU, look up your GPU memory size and your GPU cuda core count.
                 //P.S. our code only runs on NVIDIA GPUs
-                GPULootSeedCracker.setup(0.1, 5500);
+                GPULootSeedFinder.setup(0.1, 5500);
 
-                //Call the cracker. This can take up to multiple days if your seed range is large enough, but it will print some stats while running.
                 try {
                     // This overwrites the path to the PTX file that contains the cuda code. This is not needed unless you are running tests.
-                    GPULootSeedCracker.pathToPtx = (Example.class.getResource("/").getPath() + "../classes/cuda/GPULootSeedFinder.ptx").substring(1);
+                    GPULootSeedFinder.pathToPtx = (Example.class.getResource("/").getPath() + "../classes/cuda/GPULootSeedFinder.ptx").substring(1);
 
-                    GPULootSeedCracker.crack(table, requirements, 0, 1L);
+                    //Call the cracker. This can take up to multiple days if your seed range is large enough, but it will print some stats while running.
+                    GPULootSeedFinder.crack(table, requirements, 0, 1L);
                 } catch(CudaException e) {
                     System.out.println("Can't run this test because of GPU error. See below.");
                     e.printStackTrace();
@@ -147,12 +134,18 @@ public class Example {
                 }
 
                 //Get the loot seeds from the newly created binary file.
-                List<Long> lootSeeds = Reverser.getSeedsFromBinaryFile(GPULootSeedCracker.getOutputString(requirements));
+                List<Long> lootSeeds = Reverser.getSeedsFromBinaryFile(GPULootSeedFinder.getOutputString(requirements));
 
-                //Delete the binary because it's no longer needed. (You don't have to do this. It will see there is a binary file and continue where it left off.)
-                File file = new File(GPULootSeedCracker.getOutputString(requirements));
-                file.delete();
+                //Delete the binary because it's no longer needed. (You don't have to do this if you wanna use the seeds in there.
+                //GPULootSeedFinder will see there is a binary file and continue where it left off.)
+                Path file = Paths.get(GPULootSeedFinder.getOutputString(requirements));
+                try {
+                    Files.delete(file);
+                } catch (Exception e){
+                    e.printStackTrace();
+                }
 
+                //Make sure that the list of seeds with the same loot as loot seed 1, has the loot seed 1.
                 assertTrue(lootSeeds.contains(1L));
 
                 System.out.println("Checked Table " + fields[i].getName());
