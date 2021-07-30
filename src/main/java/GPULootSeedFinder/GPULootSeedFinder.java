@@ -25,6 +25,9 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -120,11 +123,14 @@ public class GPULootSeedFinder {
         if (startingSeed == -1) {
             startingSeed=0;
             try {
-                File inputFile = new File(outputString);
-                FileInputStream stream = new FileInputStream(inputFile);
-                stream.skipNBytes(inputFile.length() - 8);
-                startingSeed = Util.bytesToLong(stream.readNBytes(8)) + 1;
-                System.out.println("File found, starting at seed: " + startingSeed);
+                Path path = Paths.get(outputString);
+                if(Files.exists(path)) {
+                    File inputFile = new File(outputString);
+                    FileInputStream stream = new FileInputStream(inputFile);
+                    stream.skipNBytes(inputFile.length() - 8);
+                    startingSeed = Util.bytesToLong(stream.readNBytes(8)) + 1;
+                    System.out.println("File found, starting at seed: " + startingSeed);
+                }
             } catch (FileNotFoundException ignored) {
             } catch (Exception e) {
                 e.printStackTrace();
